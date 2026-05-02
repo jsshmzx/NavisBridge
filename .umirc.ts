@@ -7,9 +7,25 @@ export default defineConfig({
   initialState: {},
   request: {},
   layout: {
-    title: '@umijs/max',
+    title: 'NavisBridge',
+  },
+  // 将构建时环境变量 TINDER_API_URL 注入到前端代码中
+  define: {
+    'process.env.TINDER_API_URL': process.env.TINDER_API_URL || '',
   },
   routes: [
+    // 登录页：不使用全局 layout
+    {
+      path: '/login',
+      component: './Login',
+      layout: false,
+    },
+    // 403 无权限页：不使用全局 layout
+    {
+      path: '/403',
+      component: './403',
+      layout: false,
+    },
     {
       path: '/',
       redirect: '/home',
@@ -25,7 +41,7 @@ export default defineConfig({
       component: './Access',
     },
     {
-      name: ' CRUD 示例',
+      name: 'CRUD 示例',
       path: '/table',
       component: './Table',
     },

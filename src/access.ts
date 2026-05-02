@@ -1,10 +1,10 @@
-export default (initialState: API.UserInfo) => {
-  // 在这里按照初始化数据定义项目中的权限，统一管理
-  // 参考文档 https://umijs.org/docs/max/access
-  const canSeeAdmin = !!(
-    initialState && initialState.name !== 'dontHaveAccess'
+/** 允许进入后台的角色列表（superadmin 和 songlist_editor） */
+const ADMIN_ROLES: API.UserRole[] = ['superadmin', 'songlist_editor'];
+
+export default (initialState: API.CurrentUser | null | undefined) => {
+  // canAdmin: 已登录且角色为 superadmin 或 songlist_editor 时为 true
+  const canAdmin = !!(
+    initialState?.role && ADMIN_ROLES.includes(initialState.role)
   );
-  return {
-    canSeeAdmin,
-  };
+  return { canAdmin };
 };
