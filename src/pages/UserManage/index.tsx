@@ -18,7 +18,6 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import {
-  App,
   Badge,
   Button,
   Card,
@@ -27,6 +26,7 @@ import {
   Drawer,
   Form,
   Input,
+  message,
   Modal,
   Row,
   Select,
@@ -58,7 +58,6 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const UserManage: React.FC = () => {
-  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType>();
   const [stats, setStats] = useState<API.UserStats | null>(null);
   const [selectedUser, setSelectedUser] = useState<API.AdminUser | null>(null);
@@ -176,7 +175,7 @@ const UserManage: React.FC = () => {
         return;
       }
 
-      modal.confirm({
+      Modal.confirm({
         title: '确认批量更新',
         content: `确定要将选中字段应用于已选的 ${uuids.length} 个用户吗？`,
         okText: '确定',
@@ -206,7 +205,7 @@ const UserManage: React.FC = () => {
 
   // 删除确认
   const handleDelete = (user: API.AdminUser) => {
-    modal.confirm({
+    Modal.confirm({
       title: '确认删除',
       content: `确定要删除用户 ${
         user.real_name || user.username || user.uuid
@@ -490,7 +489,7 @@ const UserManage: React.FC = () => {
           <Button
             danger
             onClick={() => {
-              modal.confirm({
+              Modal.confirm({
                 title: '确认批量删除',
                 content: `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作不可恢复。`,
                 okText: '删除',
