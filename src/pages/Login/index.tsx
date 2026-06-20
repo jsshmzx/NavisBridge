@@ -1,10 +1,10 @@
 import ApiUrlModal from '@/components/ApiUrlModal';
+import { login, setToken } from '@/services/tinder';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { history, useModel } from '@umijs/max';
 import { message } from 'antd';
 import React from 'react';
-import { login, setToken } from '@/services/tinder';
 import styles from './index.less';
 
 const LoginPage: React.FC = () => {
@@ -18,13 +18,13 @@ const LoginPage: React.FC = () => {
     try {
       const token = await login(values.username, values.password);
       setToken(token);
-      // 刷新用户信息（initialState），layout 的 onPageChange 会据此决定跳转
+      // 刷新用户信息（initialState）
       await refresh();
       message.success('登录成功');
-      // 跳转到 redirect 参数指定的页面，或默认首页
+      // 使用 window.location.href 强制整页刷新，确保 onPageChange 能拿到最新的 initialState
       const { search } = history.location;
       const params = new URLSearchParams(search);
-      history.push(params.get('redirect') || '/');
+      window.location.href = params.get('redirect') || '/';
     } catch (err: any) {
       message.error(err?.message || '登录失败');
     }
@@ -34,11 +34,7 @@ const LoginPage: React.FC = () => {
     <div className={styles.container}>
       {/* 在登录页也挂载 ApiUrlModal，使其键盘监听在登录页同样生效 */}
       <ApiUrlModal />
-      <LoginForm
-        title="NavisBridge"
-        subTitle="管理后台"
-        onFinish={handleLogin}
-      >
+      <LoginForm title="NavisBridge" subTitle="管理后台" onFinish={handleLogin}>
         <ProFormText
           name="username"
           fieldProps={{ prefix: <UserOutlined /> }}

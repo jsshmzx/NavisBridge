@@ -103,6 +103,22 @@ export async function deleteUser(userUuid: string): Promise<void> {
   if (!res.ok) throw new Error('删除用户失败');
 }
 
+/** 批量删除用户 */
+export async function batchDeleteUsers(
+  userUuids: string[],
+): Promise<{ deleted: number }> {
+  const res = await fetch(`${getApiUrl()}/api/v1/admin/users/batch`, {
+    method: 'DELETE',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ uuids: userUuids }),
+  });
+  if (!res.ok) throw new Error('批量删除用户失败');
+  return res.json();
+}
+
 /** 批量更新用户 */
 export async function batchUpdateUsers(
   userUuids: string[],

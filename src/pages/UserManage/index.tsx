@@ -1,5 +1,6 @@
 import {
   banUser,
+  batchDeleteUsers,
   batchUpdateUsers,
   createUser,
   deleteUser,
@@ -506,22 +507,13 @@ const UserManage: React.FC = () => {
                 okType: 'danger',
                 cancelText: '取消',
                 onOk: async () => {
-                  let success = 0;
-                  let failed = 0;
-                  for (const row of selectedRows) {
-                    try {
-                      await deleteUser(row.uuid);
-                      success++;
-                    } catch {
-                      failed++;
-                    }
-                  }
-                  if (failed > 0) {
-                    message.warning(
-                      `删除完成：${success} 个成功，${failed} 个失败`,
+                  try {
+                    const result = await batchDeleteUsers(
+                      selectedRows.map((r) => r.uuid),
                     );
-                  } else {
-                    message.success(`已成功删除 ${success} 个用户`);
+                    message.success(`已成功删除 ${result.deleted} 个用户`);
+                  } catch {
+                    message.error('批量删除失败');
                   }
                   setSelectedRowKeys([]);
                   setSelectedRows([]);
