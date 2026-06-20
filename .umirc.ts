@@ -45,6 +45,11 @@ export default defineConfig({
       path: '/table',
       component: './Table',
     },
+    {
+      name: '用户管理',
+      path: '/user-manage',
+      component: './UserManage',
+    },
   ],
   npmClient: 'pnpm',
 });

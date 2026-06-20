@@ -4,7 +4,7 @@ const ADMIN_ROLES: API.UserRole[] = ['superadmin', 'songlist_editor'];
 export default (initialState: API.CurrentUser | null | undefined) => {
   // canAdmin: 已登录且角色为 superadmin 或 songlist_editor 时为 true
   const canAdmin = !!(
-    initialState?.role && ADMIN_ROLES.includes(initialState.role)
+    initialState?.user_role && ADMIN_ROLES.includes(initialState.user_role)
   );
   return { canAdmin };
 };

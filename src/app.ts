@@ -61,7 +61,7 @@ export const layout = ({
       }
 
       // 已登录但无管理权限：跳转到 403 页
-      if (!ADMIN_ROLES.includes(initialState.role)) {
+      if (!ADMIN_ROLES.includes(initialState.user_role)) {
         history.push(FORBIDDEN_PATH);
       }
     },

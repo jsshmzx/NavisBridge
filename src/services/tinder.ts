@@ -62,14 +62,14 @@ export async function login(
 
 /**
  * 获取当前登录用户信息。
- * 调用 GET /api/v1/auth/me，需要有效 token。
+ * 调用 GET /api/v1/users/me，需要有效 token。
  * token 过期或无效时清除本地 token 并抛出错误。
  */
 export async function getMe(): Promise<API.CurrentUser> {
   const token = getToken();
   if (!token) throw new Error('未登录');
 
-  const res = await fetch(`${getApiUrl()}/api/v1/auth/me`, {
+  const res = await fetch(`${getApiUrl()}/api/v1/users/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
