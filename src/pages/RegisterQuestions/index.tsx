@@ -82,6 +82,9 @@ const RegisterQuestions: React.FC = () => {
   );
   const [batchStatusModalVisible, setBatchStatusModalVisible] = useState(false);
   const [batchStatusForm] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
+  const [batchSubmitting, setBatchSubmitting] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   // 加载统计
   useEffect(() => {
@@ -225,6 +228,7 @@ const RegisterQuestions: React.FC = () => {
 
   // Handle form submit for create/edit
   const handleFormSubmit = async () => {
+    setSubmitting(true);
     try {
       const values = await form.validateFields();
       const payload: Record<string, unknown> = {
@@ -249,12 +253,15 @@ const RegisterQuestions: React.FC = () => {
     } catch (err: any) {
       if (err?.errorFields) return;
       message.error(err?.message || '操作失败');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   // Single delete
   const handleDeleteConfirm = async () => {
     if (!pendingDeleteUuid) return;
+    setDeleteSubmitting(true);
     try {
       await deleteQuestion(pendingDeleteUuid);
       message.success('删除成功');
@@ -266,6 +273,7 @@ const RegisterQuestions: React.FC = () => {
     } finally {
       setDeleteModalVisible(false);
       setPendingDeleteUuid(null);
+      setDeleteSubmitting(false);
     }
   };
 
@@ -296,6 +304,7 @@ const RegisterQuestions: React.FC = () => {
 
   // Batch status update
   const handleBatchStatus = async () => {
+    setBatchSubmitting(true);
     try {
       const values = await batchStatusForm.validateFields();
       const result = await batchUpdateQuestionStatus(
@@ -312,6 +321,8 @@ const RegisterQuestions: React.FC = () => {
     } catch (err: any) {
       if (err?.errorFields) return;
       message.error(err?.message || '批量状态更新失败');
+    } finally {
+      setBatchSubmitting(false);
     }
   };
 
@@ -514,6 +525,7 @@ const RegisterQuestions: React.FC = () => {
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleFormSubmit}
+        confirmLoading={submitting}
         width={600}
         destroyOnClose
       >
@@ -611,29 +623,30 @@ const RegisterQuestions: React.FC = () => {
           {/* 正确答案 */}
           <Form.Item
             label="正确答案"
-            name="answer"
             rules={[{ required: true, message: '请输入正确答案' }]}
           >
             {questionType === 'choice' ? (
               // For choice, the answer is selected from options
-              <Form.Item
-                noStyle
-                name="answer"
-                rules={[{ required: true, message: '请选择正确答案' }]}
-              >
-                <Select placeholder="请选择正确答案">
-                  {(() => {
-                    const opts = form.getFieldValue('options') || [];
-                    return opts
-                      .filter((o: string) => o.trim() !== '')
-                      .map((o: string, i: number) => (
-                        <Select.Option key={o} value={o}>
-                          {String.fromCharCode(65 + i)}. {o}
-                        </Select.Option>
-                      ));
-                  })()}
-                </Select>
-              </Form.Item>
+              <>
+                <Form.Item
+                  noStyle
+                  name="answer"
+                  rules={[{ required: true, message: '请选择正确答案' }]}
+                >
+                  <Select placeholder="请选择正确答案">
+                    {(() => {
+                      const opts = form.getFieldValue('options') || [];
+                      return opts
+                        .filter((o: string) => o.trim() !== '')
+                        .map((o: string, i: number) => (
+                          <Select.Option key={o} value={o}>
+                            {String.fromCharCode(65 + i)}. {o}
+                          </Select.Option>
+                        ));
+                    })()}
+                  </Select>
+                </Form.Item>
+              </>
             ) : questionType === 'true_false' ? (
               <Radio.Group>
                 <Radio value="true">正确</Radio>
@@ -655,6 +668,7 @@ const RegisterQuestions: React.FC = () => {
           batchStatusForm.resetFields();
         }}
         onOk={handleBatchStatus}
+        confirmLoading={batchSubmitting}
         width={400}
         destroyOnClose
       >
@@ -687,6 +701,7 @@ const RegisterQuestions: React.FC = () => {
           setPendingDeleteUuid(null);
         }}
         onOk={handleDeleteConfirm}
+        confirmLoading={deleteSubmitting}
         okText="确认删除"
         okType="danger"
         cancelText="取消"
