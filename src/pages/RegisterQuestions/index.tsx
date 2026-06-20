@@ -340,8 +340,9 @@ const RegisterQuestions: React.FC = () => {
     }
   };
 
-  // Watch question_type to show/hide options field
+  // Watch question_type to show/hide options field and options for reactive select
   const questionType = Form.useWatch('question_type', form);
+  const currentOptions = Form.useWatch('options', form);
 
   return (
     <PageContainer header={{ title: '注册问题管理' }}>
@@ -623,30 +624,19 @@ const RegisterQuestions: React.FC = () => {
           {/* 正确答案 */}
           <Form.Item
             label="正确答案"
-            rules={[{ required: true, message: '请输入正确答案' }]}
+            name="answer"
+            rules={[{ required: true, message: '请填写或选择正确答案' }]}
           >
             {questionType === 'choice' ? (
-              // For choice, the answer is selected from options
-              <>
-                <Form.Item
-                  noStyle
-                  name="answer"
-                  rules={[{ required: true, message: '请选择正确答案' }]}
-                >
-                  <Select placeholder="请选择正确答案">
-                    {(() => {
-                      const opts = form.getFieldValue('options') || [];
-                      return opts
-                        .filter((o: string) => o.trim() !== '')
-                        .map((o: string, i: number) => (
-                          <Select.Option key={o} value={o}>
-                            {String.fromCharCode(65 + i)}. {o}
-                          </Select.Option>
-                        ));
-                    })()}
-                  </Select>
-                </Form.Item>
-              </>
+              <Select placeholder="请选择正确答案">
+                {(currentOptions || [])
+                  .filter((o: string) => o.trim() !== '')
+                  .map((o: string, i: number) => (
+                    <Select.Option key={o} value={o}>
+                      {String.fromCharCode(65 + i)}. {o}
+                    </Select.Option>
+                  ))}
+              </Select>
             ) : questionType === 'true_false' ? (
               <Radio.Group>
                 <Radio value="true">正确</Radio>
