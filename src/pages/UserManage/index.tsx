@@ -471,7 +471,11 @@ const UserManage: React.FC = () => {
           defaultCollapsed: false,
           optionRender: (searchConfig, props, dom) => [...dom.reverse()],
         }}
-        pagination={{ pageSize: 20, showSizeChanger: false }}
+        pagination={{
+          defaultPageSize: 20,
+          showSizeChanger: true,
+          pageSizeOptions: [20, 50, 100, 200, 500],
+        }}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys, rows) => {
