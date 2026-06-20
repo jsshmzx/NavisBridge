@@ -35,6 +35,11 @@ export default defineConfig({
       path: '/user-manage',
       component: './UserManage',
     },
+    {
+      name: '注册问题管理',
+      path: '/register-questions',
+      component: './RegisterQuestions',
+    },
   ],
   npmClient: 'pnpm',
 });
