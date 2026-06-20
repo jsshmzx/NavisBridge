@@ -73,4 +73,26 @@ declare namespace API {
   interface TotalResponse {
     total: number;
   }
+
+  /** 注册问题列表项 */
+  interface RegisterQuestion {
+    id: number;
+    uuid: string;
+    question: string;
+    question_type: 'choice' | 'true_false' | 'fill_blank';
+    answer: string;
+    options: string[] | null;
+    question_level: string | null;
+    current_status: string | null;
+    created_by: string | null;
+    created_at: string | null;
+  }
+
+  /** 注册问题统计 */
+  interface QuestionStats {
+    total: number;
+    choice: number;
+    true_false: number;
+    fill_blank: number;
+  }
 }

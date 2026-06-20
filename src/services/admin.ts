@@ -197,3 +197,161 @@ export async function enableUser(userUuid: string): Promise<void> {
   );
   if (!res.ok) throw new Error('启用用户失败');
 }
+
+// ─── 注册问题管理 ───────────────────────────────────────────────────────
+
+/** 搜索题目列表 */
+export async function searchQuestions(params: {
+  limit?: number;
+  offset?: number;
+  keyword?: string;
+  type?: string;
+  status?: string;
+}): Promise<API.RegisterQuestion[]> {
+  const query = new URLSearchParams();
+  if (params.limit !== undefined) query.set('limit', String(params.limit));
+  if (params.offset !== undefined) query.set('offset', String(params.offset));
+  if (params.keyword) query.set('keyword', params.keyword);
+  if (params.type) query.set('type', params.type);
+  if (params.status) query.set('status', params.status);
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions?${query.toString()}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error('获取题目列表失败');
+  return res.json();
+}
+
+/** 获取题目总数 */
+export async function getQuestionsTotal(params?: {
+  keyword?: string;
+  type?: string;
+  status?: string;
+}): Promise<API.TotalResponse> {
+  const query = new URLSearchParams();
+  if (params?.keyword) query.set('keyword', params.keyword);
+  if (params?.type) query.set('type', params.type);
+  if (params?.status) query.set('status', params.status);
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions/total?${query.toString()}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error('获取题目总数失败');
+  return res.json();
+}
+
+/** 获取题目统计 */
+export async function getQuestionStats(): Promise<API.QuestionStats> {
+  const res = await fetch(`${getApiUrl()}/api/v1/admin/questions/stats`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('获取题目统计失败');
+  return res.json();
+}
+
+/** 创建题目 */
+export async function createQuestion(
+  data: Record<string, unknown>,
+): Promise<API.RegisterQuestion> {
+  const res = await fetch(`${getApiUrl()}/api/v1/admin/questions`, {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '创建题目失败');
+  }
+  return res.json();
+}
+
+/** 编辑题目 */
+export async function updateQuestion(
+  questionUuid: string,
+  data: Record<string, unknown>,
+): Promise<API.RegisterQuestion> {
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions/${questionUuid}`,
+    {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '更新题目失败');
+  }
+  return res.json();
+}
+
+/** 删除单题 */
+export async function deleteQuestion(questionUuid: string): Promise<void> {
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions/${questionUuid}`,
+    { method: 'DELETE', headers: authHeaders() },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '删除题目失败');
+  }
+}
+
+/** 批量删除题目 */
+export async function batchDeleteQuestions(
+  uuids: string[],
+): Promise<{ deleted: number }> {
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions/batch-delete`,
+    {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuids }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '批量删除失败');
+  }
+  return res.json();
+}
+
+/** 批量切换题目状态 */
+export async function batchUpdateQuestionStatus(
+  uuids: string[],
+  status: string,
+): Promise<{ updated: number }> {
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions/batch-status`,
+    {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuids, status }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '批量状态更新失败');
+  }
+  return res.json();
+}
+
+/** 单题切换状态 */
+export async function updateQuestionStatus(
+  questionUuid: string,
+  status: string,
+): Promise<API.RegisterQuestion> {
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/questions/${questionUuid}/status`,
+    {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '状态更新失败');
+  }
+  return res.json();
+}
