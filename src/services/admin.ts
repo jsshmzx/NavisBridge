@@ -21,9 +21,12 @@ export async function searchUsers(params: {
   if (params.status) query.set('status', params.status);
   if (params.role) query.set('role', params.role);
 
-  const res = await fetch(`${getApiUrl()}/api/v1/admin/users?${query.toString()}`, {
-    headers: authHeaders(),
-  });
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/users?${query.toString()}`,
+    {
+      headers: authHeaders(),
+    },
+  );
   if (!res.ok) throw new Error('获取用户列表失败');
   return res.json();
 }
@@ -39,9 +42,12 @@ export async function getUsersTotal(params?: {
   if (params?.status) query.set('status', params.status);
   if (params?.role) query.set('role', params.role);
 
-  const res = await fetch(`${getApiUrl()}/api/v1/admin/users/total?${query.toString()}`, {
-    headers: authHeaders(),
-  });
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/users/total?${query.toString()}`,
+    {
+      headers: authHeaders(),
+    },
+  );
   if (!res.ok) throw new Error('获取用户总数失败');
   return res.json();
 }
@@ -56,7 +62,9 @@ export async function getUserStats(): Promise<API.UserStats> {
 }
 
 /** 创建用户 */
-export async function createUser(data: Record<string, unknown>): Promise<API.AdminUser> {
+export async function createUser(
+  data: Record<string, unknown>,
+): Promise<API.AdminUser> {
   const res = await fetch(`${getApiUrl()}/api/v1/admin/users`, {
     method: 'POST',
     headers: {
@@ -95,6 +103,26 @@ export async function deleteUser(userUuid: string): Promise<void> {
   if (!res.ok) throw new Error('删除用户失败');
 }
 
+/** 批量更新用户 */
+export async function batchUpdateUsers(
+  userUuids: string[],
+  data: Record<string, unknown>,
+): Promise<{ success: number; failed: number }> {
+  let success = 0;
+  let failed = 0;
+  await Promise.all(
+    userUuids.map(async (uuid) => {
+      try {
+        await updateUser(uuid, data);
+        success++;
+      } catch {
+        failed++;
+      }
+    }),
+  );
+  return { success, failed };
+}
+
 /** 封禁用户 */
 export async function banUser(userUuid: string): Promise<void> {
   const res = await fetch(`${getApiUrl()}/api/v1/admin/users/${userUuid}/ban`, {
@@ -106,27 +134,36 @@ export async function banUser(userUuid: string): Promise<void> {
 
 /** 解封用户 */
 export async function unbanUser(userUuid: string): Promise<void> {
-  const res = await fetch(`${getApiUrl()}/api/v1/admin/users/${userUuid}/unban`, {
-    method: 'POST',
-    headers: authHeaders(),
-  });
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/users/${userUuid}/unban`,
+    {
+      method: 'POST',
+      headers: authHeaders(),
+    },
+  );
   if (!res.ok) throw new Error('解封用户失败');
 }
 
 /** 禁用用户 */
 export async function disableUser(userUuid: string): Promise<void> {
-  const res = await fetch(`${getApiUrl()}/api/v1/admin/users/${userUuid}/disable`, {
-    method: 'POST',
-    headers: authHeaders(),
-  });
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/users/${userUuid}/disable`,
+    {
+      method: 'POST',
+      headers: authHeaders(),
+    },
+  );
   if (!res.ok) throw new Error('禁用用户失败');
 }
 
 /** 启用用户 */
 export async function enableUser(userUuid: string): Promise<void> {
-  const res = await fetch(`${getApiUrl()}/api/v1/admin/users/${userUuid}/enable`, {
-    method: 'POST',
-    headers: authHeaders(),
-  });
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/users/${userUuid}/enable`,
+    {
+      method: 'POST',
+      headers: authHeaders(),
+    },
+  );
   if (!res.ok) throw new Error('启用用户失败');
 }

@@ -1,5 +1,18 @@
 import {
+  banUser,
+  batchUpdateUsers,
+  createUser,
+  deleteUser,
+  disableUser,
+  enableUser,
+  getUserStats,
+  searchUsers,
+  unbanUser,
+  updateUser,
+} from '@/services/admin';
+import {
   ActionType,
+  FooterToolbar,
   PageContainer,
   ProColumns,
   ProTable,
@@ -22,17 +35,6 @@ import {
   Tag,
 } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  banUser,
-  createUser,
-  deleteUser,
-  disableUser,
-  enableUser,
-  getUserStats,
-  searchUsers,
-  unbanUser,
-  updateUser,
-} from '@/services/admin';
 
 /** 状态标签颜色 */
 const STATUS_COLORS: Record<string, string> = {
@@ -67,9 +69,17 @@ const UserManage: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createForm] = Form.useForm();
 
+  // 批量编辑
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<API.AdminUser[]>([]);
+  const [batchEditModalOpen, setBatchEditModalOpen] = useState(false);
+  const [batchEditForm] = Form.useForm();
+
   // 加载统计
   useEffect(() => {
-    getUserStats().then(setStats).catch(() => {});
+    getUserStats()
+      .then(setStats)
+      .catch(() => {});
   }, []);
 
   // 查看详情
@@ -131,10 +141,66 @@ const UserManage: React.FC = () => {
       setCreateModalOpen(false);
       createForm.resetFields();
       actionRef.current?.reload();
-      getUserStats().then(setStats).catch(() => {});
+      getUserStats()
+        .then(setStats)
+        .catch(() => {});
     } catch (err: any) {
       if (err?.errorFields) return;
       message.error(err?.message || '创建失败');
+    }
+  };
+
+  // 批量编辑
+  const showBatchEdit = () => {
+    batchEditForm.resetFields();
+    setBatchEditModalOpen(true);
+  };
+
+  const handleBatchEdit = async () => {
+    const uuids = selectedRows.map((r) => r.uuid);
+    if (uuids.length === 0) {
+      message.warning('请先选择需要编辑的用户');
+      return;
+    }
+    try {
+      const values = await batchEditForm.validateFields();
+      // 只收集有值的字段
+      const payload: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(values)) {
+        if (value !== undefined && value !== null && value !== '') {
+          payload[key] = value;
+        }
+      }
+      if (Object.keys(payload).length === 0) {
+        message.warning('请至少设置一个要修改的字段');
+        return;
+      }
+
+      modal.confirm({
+        title: '确认批量更新',
+        content: `确定要将选中字段应用于已选的 ${uuids.length} 个用户吗？`,
+        okText: '确定',
+        cancelText: '取消',
+        onOk: async () => {
+          const { success, failed } = await batchUpdateUsers(uuids, payload);
+          if (failed > 0) {
+            message.warning(`更新完成：${success} 个成功，${failed} 个失败`);
+          } else {
+            message.success(`已成功更新 ${success} 个用户`);
+          }
+          setBatchEditModalOpen(false);
+          setSelectedRowKeys([]);
+          setSelectedRows([]);
+          batchEditForm.resetFields();
+          actionRef.current?.reload();
+          getUserStats()
+            .then(setStats)
+            .catch(() => {});
+        },
+      });
+    } catch (err: any) {
+      if (err?.errorFields) return;
+      message.error(err?.message || '批量更新失败');
     }
   };
 
@@ -142,7 +208,9 @@ const UserManage: React.FC = () => {
   const handleDelete = (user: API.AdminUser) => {
     modal.confirm({
       title: '确认删除',
-      content: `确定要删除用户 ${user.real_name || user.username || user.uuid} 吗？此操作不可恢复。`,
+      content: `确定要删除用户 ${
+        user.real_name || user.username || user.uuid
+      } 吗？此操作不可恢复。`,
       okText: '删除',
       okType: 'danger',
       cancelText: '取消',
@@ -151,7 +219,9 @@ const UserManage: React.FC = () => {
           await deleteUser(user.uuid);
           message.success('删除成功');
           actionRef.current?.reload();
-          getUserStats().then(setStats).catch(() => {});
+          getUserStats()
+            .then(setStats)
+            .catch(() => {});
           setDrawerOpen(false);
         } catch (err: any) {
           message.error(err?.message || '删除失败');
@@ -176,7 +246,9 @@ const UserManage: React.FC = () => {
       await fn(user.uuid);
       message.success(msg);
       actionRef.current?.reload();
-      getUserStats().then(setStats).catch(() => {});
+      getUserStats()
+        .then(setStats)
+        .catch(() => {});
       setDrawerOpen(false);
     } catch (err: any) {
       message.error(err?.message || '操作失败');
@@ -249,8 +321,11 @@ const UserManage: React.FC = () => {
       render: (_, record) => (
         <Badge
           status={
-            (STATUS_COLORS[record.current_status || ''] ||
-              'default') as 'success' | 'error' | 'warning' | 'default'
+            (STATUS_COLORS[record.current_status || ''] || 'default') as
+              | 'success'
+              | 'error'
+              | 'warning'
+              | 'default'
           }
           text={
             STATUS_LABELS[record.current_status || ''] ||
@@ -389,12 +464,70 @@ const UserManage: React.FC = () => {
         search={{
           labelWidth: 'auto',
           defaultCollapsed: false,
-          optionRender: (searchConfig, props, dom) => [
-            ...dom.reverse(),
-          ],
+          optionRender: (searchConfig, props, dom) => [...dom.reverse()],
         }}
         pagination={{ pageSize: 20, showSizeChanger: false }}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys, rows) => {
+            setSelectedRowKeys(keys);
+            setSelectedRows(rows);
+          },
+        }}
       />
+
+      {/* 批量操作栏 */}
+      {selectedRowKeys.length > 0 && (
+        <FooterToolbar
+          extra={
+            <div>
+              已选择 <a style={{ fontWeight: 600 }}>{selectedRowKeys.length}</a>{' '}
+              个用户
+            </div>
+          }
+        >
+          <Button onClick={showBatchEdit}>批量编辑</Button>
+          <Button
+            danger
+            onClick={() => {
+              modal.confirm({
+                title: '确认批量删除',
+                content: `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作不可恢复。`,
+                okText: '删除',
+                okType: 'danger',
+                cancelText: '取消',
+                onOk: async () => {
+                  let success = 0;
+                  let failed = 0;
+                  for (const row of selectedRows) {
+                    try {
+                      await deleteUser(row.uuid);
+                      success++;
+                    } catch {
+                      failed++;
+                    }
+                  }
+                  if (failed > 0) {
+                    message.warning(
+                      `删除完成：${success} 个成功，${failed} 个失败`,
+                    );
+                  } else {
+                    message.success(`已成功删除 ${success} 个用户`);
+                  }
+                  setSelectedRowKeys([]);
+                  setSelectedRows([]);
+                  actionRef.current?.reload();
+                  getUserStats()
+                    .then(setStats)
+                    .catch(() => {});
+                },
+              });
+            }}
+          >
+            批量删除
+          </Button>
+        </FooterToolbar>
+      )}
 
       {/* 详情抽屉 */}
       <Drawer
@@ -424,15 +557,28 @@ const UserManage: React.FC = () => {
               {selectedUser.class || '-'}
             </Descriptions.Item>
             <Descriptions.Item label="学段">
-              {selectedUser.class_type === 'high-school' ? '中学' : selectedUser.class_type === 'university' ? '大学' : '-'}
+              {selectedUser.class_type === 'high-school'
+                ? '中学'
+                : selectedUser.class_type === 'university'
+                ? '大学'
+                : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="角色">
-              <Tag>{ROLE_LABELS[selectedUser.user_role] || selectedUser.user_role}</Tag>
+              <Tag>
+                {ROLE_LABELS[selectedUser.user_role] || selectedUser.user_role}
+              </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="状态">
               <Badge
-                status={(STATUS_COLORS[selectedUser.current_status || ''] || 'default') as any}
-                text={STATUS_LABELS[selectedUser.current_status || ''] || selectedUser.current_status || '未知'}
+                status={
+                  (STATUS_COLORS[selectedUser.current_status || ''] ||
+                    'default') as any
+                }
+                text={
+                  STATUS_LABELS[selectedUser.current_status || ''] ||
+                  selectedUser.current_status ||
+                  '未知'
+                }
               />
             </Descriptions.Item>
             <Descriptions.Item label="头衔">
@@ -509,11 +655,7 @@ const UserManage: React.FC = () => {
         onOk={handleEdit}
         width={500}
       >
-        <Form
-          form={editForm}
-          layout="vertical"
-          style={{ marginTop: 16 }}
-        >
+        <Form form={editForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item label="用户名" name="username">
             <Input />
           </Form.Item>
@@ -631,6 +773,69 @@ const UserManage: React.FC = () => {
                 { label: '超级管理员', value: 'superadmin' },
                 { label: '歌单编辑', value: 'songlist_editor' },
                 { label: '普通用户', value: 'normal-user' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 批量编辑弹窗 */}
+      <Modal
+        title={`批量编辑（已选 ${selectedRowKeys.length} 个用户）`}
+        open={batchEditModalOpen}
+        onCancel={() => {
+          setBatchEditModalOpen(false);
+          batchEditForm.resetFields();
+        }}
+        onOk={handleBatchEdit}
+        width={500}
+      >
+        <Form form={batchEditForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item label="角色" name="user_role">
+            <Select
+              allowClear
+              placeholder="不修改则不选择"
+              options={[
+                { label: '超级管理员', value: 'superadmin' },
+                { label: '歌单编辑', value: 'songlist_editor' },
+                { label: '普通用户', value: 'normal-user' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="状态" name="current_status">
+            <Select
+              allowClear
+              placeholder="不修改则不选择"
+              options={[
+                { label: '正常', value: 'normal' },
+                { label: '已禁用', value: 'disabled' },
+                { label: '已封禁', value: 'banned' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="学段" name="class_type">
+            <Select
+              allowClear
+              placeholder="不修改则不选择"
+              options={[
+                { label: '中学', value: 'high-school' },
+                { label: '大学', value: 'university' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="班级" name="class">
+            <Input placeholder="不修改则不填写" allowClear />
+          </Form.Item>
+          <Form.Item label="头衔" name="title">
+            <Input placeholder="不修改则不填写" allowClear />
+          </Form.Item>
+          <Form.Item label="是否认证" name="is_verified">
+            <Select
+              allowClear
+              placeholder="不修改则不选择"
+              options={[
+                { label: '是', value: true },
+                { label: '否', value: false },
               ]}
             />
           </Form.Item>
