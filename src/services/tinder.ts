@@ -34,21 +34,31 @@ export function clearToken(): void {
 
 // ─── API 调用 ────────────────────────────────────────────────────────────────
 
+/** 使用 Web Crypto API 计算 SHA256 hex 字符串。 */
+async function sha256Hex(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * 用户登录。
- * 调用 POST /api/v1/auth/login（OAuth2PasswordRequestForm 格式）。
+ * 调用 POST /api/v1/auth/login（JSON 格式）。
  * 成功时返回 access_token，失败时抛出错误。
  */
 export async function login(
   username: string,
   password: string,
 ): Promise<string> {
-  const body = new URLSearchParams({ username, password });
+  // SHA256 双重哈希后发送，与后端 core/security/password.py 约定一致
+  const hashedPassword = await sha256Hex(await sha256Hex(password));
 
   const res = await fetch(`${getApiUrl()}/api/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password: hashedPassword }),
   });
 
   if (!res.ok) {
