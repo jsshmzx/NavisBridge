@@ -205,30 +205,51 @@ const UserManage: React.FC = () => {
     }
   };
 
-  // 删除确认
+  // 删除确认 — 先弹超级密码输入框
+  const [superPassword, setSuperPassword] = useState('');
+  const [superPwdModalVisible, setSuperPwdModalVisible] = useState(false);
+  // 暂存待删除的用户 / 批量UUID
+  const [pendingDeleteUser, setPendingDeleteUser] =
+    useState<API.AdminUser | null>(null);
+  const [pendingBatchDelete, setPendingBatchDelete] = useState(false);
+
   const handleDelete = (user: API.AdminUser) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除用户 ${
-        user.real_name || user.username || user.uuid
-      } 吗？此操作不可恢复。`,
-      okText: '删除',
-      okType: 'danger',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          await deleteUser(user.uuid);
-          message.success('删除成功');
-          actionRef.current?.reload();
-          getUserStats()
-            .then(setStats)
-            .catch(() => {});
-          setDrawerOpen(false);
-        } catch (err: any) {
-          message.error(err?.message || '删除失败');
-        }
-      },
-    });
+    setPendingDeleteUser(user);
+    setPendingBatchDelete(false);
+    setSuperPassword('');
+    setSuperPwdModalVisible(true);
+  };
+
+  const handleDeleteConfirmWithPassword = async () => {
+    if (!superPassword) {
+      message.warning('请输入超级密码');
+      return;
+    }
+    try {
+      if (pendingDeleteUser) {
+        await deleteUser(pendingDeleteUser.uuid, superPassword);
+        message.success('删除成功');
+      } else if (pendingBatchDelete) {
+        const result = await batchDeleteUsers(
+          selectedRows.map((r) => r.uuid),
+          superPassword,
+        );
+        message.success(`已成功删除 ${result.deleted} 个用户`);
+        setSelectedRowKeys([]);
+        setSelectedRows([]);
+      }
+      actionRef.current?.reload();
+      getUserStats()
+        .then(setStats)
+        .catch(() => {});
+      setDrawerOpen(false);
+    } catch (err: any) {
+      message.error(err?.message || '删除失败');
+    } finally {
+      setSuperPwdModalVisible(false);
+      setPendingDeleteUser(null);
+      setPendingBatchDelete(false);
+    }
   };
 
   // 状态变更操作
@@ -500,29 +521,10 @@ const UserManage: React.FC = () => {
           <Button
             danger
             onClick={() => {
-              Modal.confirm({
-                title: '确认批量删除',
-                content: `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作不可恢复。`,
-                okText: '删除',
-                okType: 'danger',
-                cancelText: '取消',
-                onOk: async () => {
-                  try {
-                    const result = await batchDeleteUsers(
-                      selectedRows.map((r) => r.uuid),
-                    );
-                    message.success(`已成功删除 ${result.deleted} 个用户`);
-                  } catch {
-                    message.error('批量删除失败');
-                  }
-                  setSelectedRowKeys([]);
-                  setSelectedRows([]);
-                  actionRef.current?.reload();
-                  getUserStats()
-                    .then(setStats)
-                    .catch(() => {});
-                },
-              });
+              setPendingDeleteUser(null);
+              setPendingBatchDelete(true);
+              setSuperPassword('');
+              setSuperPwdModalVisible(true);
             }}
           >
             批量删除
@@ -841,6 +843,38 @@ const UserManage: React.FC = () => {
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 超级密码确认弹窗 — 用于所有删除操作 */}
+      <Modal
+        title="确认删除 — 需要超级密码"
+        open={superPwdModalVisible}
+        onCancel={() => {
+          setSuperPwdModalVisible(false);
+          setPendingDeleteUser(null);
+          setPendingBatchDelete(false);
+        }}
+        onOk={handleDeleteConfirmWithPassword}
+        okText="确认删除"
+        okType="danger"
+        cancelText="取消"
+        width={400}
+      >
+        <p style={{ marginBottom: 16 }}>
+          {pendingDeleteUser
+            ? `确定要删除用户「${
+                pendingDeleteUser.real_name ||
+                pendingDeleteUser.username ||
+                pendingDeleteUser.uuid
+              }」吗？此操作不可恢复。`
+            : `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作不可恢复。`}
+        </p>
+        <Input.Password
+          placeholder="请输入超级密码"
+          value={superPassword}
+          onChange={(e) => setSuperPassword(e.target.value)}
+          autoFocus
+        />
       </Modal>
     </PageContainer>
   );

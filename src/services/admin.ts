@@ -95,17 +95,28 @@ export async function updateUser(
 }
 
 /** 删除用户 */
-export async function deleteUser(userUuid: string): Promise<void> {
+export async function deleteUser(
+  userUuid: string,
+  superPassword: string,
+): Promise<void> {
   const res = await fetch(`${getApiUrl()}/api/v1/admin/users/${userUuid}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ super_password: superPassword }),
   });
-  if (!res.ok) throw new Error('删除用户失败');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '删除用户失败');
+  }
 }
 
 /** 批量删除用户 */
 export async function batchDeleteUsers(
   userUuids: string[],
+  superPassword: string,
 ): Promise<{ deleted: number }> {
   const res = await fetch(`${getApiUrl()}/api/v1/admin/users/batch`, {
     method: 'DELETE',
@@ -113,9 +124,12 @@ export async function batchDeleteUsers(
       ...authHeaders(),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ uuids: userUuids }),
+    body: JSON.stringify({ uuids: userUuids, super_password: superPassword }),
   });
-  if (!res.ok) throw new Error('批量删除用户失败');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '批量删除用户失败');
+  }
   return res.json();
 }
 
