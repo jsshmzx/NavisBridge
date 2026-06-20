@@ -28,22 +28,7 @@ export default defineConfig({
     },
     {
       path: '/',
-      redirect: '/home',
-    },
-    {
-      name: '首页',
-      path: '/home',
-      component: './Home',
-    },
-    {
-      name: '权限演示',
-      path: '/access',
-      component: './Access',
-    },
-    {
-      name: 'CRUD 示例',
-      path: '/table',
-      component: './Table',
+      redirect: '/user-manage',
     },
     {
       name: '用户管理',
@@ -53,4 +38,3 @@ export default defineConfig({
   ],
   npmClient: 'pnpm',
 });
-
