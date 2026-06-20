@@ -6,6 +6,7 @@ import {
   disableUser,
   enableUser,
   getUserStats,
+  getUsersTotal,
   searchUsers,
   unbanUser,
   updateUser,
@@ -442,14 +443,19 @@ const UserManage: React.FC = () => {
             (rest.username as string) ||
             (rest.real_name as string) ||
             undefined;
-          const data = await searchUsers({
-            limit: pageSize || 20,
-            offset: ((current || 1) - 1) * (pageSize || 20),
-            keyword,
-            status: rest.current_status as string | undefined,
-            role: rest.user_role as string | undefined,
-          });
-          return { data, success: true, total: data.length };
+          const status = rest.current_status as string | undefined;
+          const role = rest.user_role as string | undefined;
+          const [data, totalRes] = await Promise.all([
+            searchUsers({
+              limit: pageSize || 20,
+              offset: ((current || 1) - 1) * (pageSize || 20),
+              keyword,
+              status,
+              role,
+            }),
+            getUsersTotal({ keyword, status, role }),
+          ]);
+          return { data, success: true, total: totalRes.total };
         }}
         toolBarRender={() => [
           <Button
