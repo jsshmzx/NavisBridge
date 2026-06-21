@@ -1,6 +1,6 @@
 allowBuilds:
-  core-js: set this to true or false
-  core-js-pure: set this to true or false
-  es5-ext: set this to true or false
-  esbuild: set this to true or false
+  core-js: true
+  core-js-pure: true
+  es5-ext: true
+  esbuild: true
 onlyBuiltDependencies: '["core-js","core-js-pure","es5-ext","esbuild"]'
