@@ -3,3 +3,4 @@ allowBuilds:
   core-js-pure: set this to true or false
   es5-ext: set this to true or false
   esbuild: set this to true or false
+onlyBuiltDependencies: '["core-js","core-js-pure","es5-ext","esbuild"]'
