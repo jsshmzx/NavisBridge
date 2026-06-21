@@ -1,4 +1,4 @@
-import { getBuildApiUrl, getApiUrl, setApiUrl } from '@/utils/apiUrl';
+import { getApiUrl, getBuildApiUrl, setApiUrl } from '@/utils/apiUrl';
 import { Alert, Button, Form, Input, Modal, Space } from 'antd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -140,7 +140,7 @@ const ApiUrlModal: React.FC = () => {
             { type: 'url', message: '请输入合法的 URL（含协议，如 https://）' },
           ]}
         >
-          <Input placeholder="https://tinder.dev" allowClear />
+          <Input placeholder="https://tinder.hmzx.link" allowClear />
         </Form.Item>
       </Form>
     </Modal>

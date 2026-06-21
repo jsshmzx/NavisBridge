@@ -2,7 +2,7 @@
   "private": true,
   "author": "Teror Fox <i@trfox.top>",
   "scripts": {
-    "build": "max build",
+    "build": "max build && node scripts/generate-env.js",
     "dev": "max dev",
     "format": "prettier --cache --write .",
     "postinstall": "max setup",
