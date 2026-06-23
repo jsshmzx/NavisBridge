@@ -95,4 +95,9 @@ declare namespace API {
     true_false: number;
     fill_blank: number;
   }
+
+  /** 敏感信息映射：uuid → { real_name, class } */
+  interface SensitiveDataMap {
+    data: Record<string, { real_name: string | null; class: string | null }>;
+  }
 }

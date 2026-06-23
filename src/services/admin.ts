@@ -198,6 +198,47 @@ export async function enableUser(userUuid: string): Promise<void> {
   if (!res.ok) throw new Error('启用用户失败');
 }
 
+/** 管理员重置用户密码 */
+export async function resetPassword(
+  userUuid: string,
+  superPassword: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${getApiUrl()}/api/v1/admin/users/${userUuid}/reset-password`,
+    {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        super_password: superPassword,
+        new_password: newPassword,
+      }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '重置密码失败');
+  }
+  return res.json();
+}
+
+/** 查看用户敏感信息（真实姓名、班级） */
+export async function getSensitiveData(
+  superPassword: string,
+  uuids: string[],
+): Promise<API.SensitiveDataMap> {
+  const res = await fetch(`${getApiUrl()}/api/v1/admin/users/sensitive-data`, {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ super_password: superPassword, uuids }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '获取敏感信息失败');
+  }
+  return res.json();
+}
+
 // ─── 注册问题管理 ───────────────────────────────────────────────────────
 
 /** 搜索题目列表 */

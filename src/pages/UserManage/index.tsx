@@ -6,8 +6,10 @@ import {
   deleteUser,
   disableUser,
   enableUser,
+  getSensitiveData,
   getUserStats,
   getUsersTotal,
+  resetPassword,
   searchUsers,
   unbanUser,
   updateUser,
@@ -20,6 +22,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -75,6 +78,21 @@ const UserManage: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<API.AdminUser[]>([]);
   const [batchEditModalOpen, setBatchEditModalOpen] = useState(false);
   const [batchEditForm] = Form.useForm();
+
+  // 敏感信息相关
+  const [sensitiveData, setSensitiveData] = useState<
+    Record<string, { real_name: string | null; class: string | null }>
+  >({});
+  const [sensitiveModalVisible, setSensitiveModalVisible] = useState(false);
+  const [sensitiveSuperPassword, setSensitiveSuperPassword] = useState('');
+  const [sensitiveRevealed, setSensitiveRevealed] = useState(false);
+
+  // 重置密码相关
+  const [resetPwdModalVisible, setResetPwdModalVisible] = useState(false);
+  const [resetPwdUser, setResetPwdUser] = useState<API.AdminUser | null>(null);
+  const [resetPwdSuperPassword, setResetPwdSuperPassword] = useState('');
+  const [resetPwdNewPassword, setResetPwdNewPassword] = useState('');
+  const [resetPwdConfirmPassword, setResetPwdConfirmPassword] = useState('');
 
   // 加载统计
   useEffect(() => {
@@ -277,6 +295,77 @@ const UserManage: React.FC = () => {
     }
   };
 
+  // 查看敏感信息
+  const handleShowSensitive = () => {
+    setSensitiveSuperPassword('');
+    setSensitiveModalVisible(true);
+  };
+
+  const handleSensitiveConfirm = async () => {
+    if (!sensitiveSuperPassword) {
+      message.warning('请输入超级密码');
+      return;
+    }
+    try {
+      if (selectedRows.length === 0) {
+        message.warning('请先在表格中选择要查看的用户');
+        setSensitiveModalVisible(false);
+        return;
+      }
+      const uuids = selectedRows.map((r) => r.uuid);
+      const result = await getSensitiveData(sensitiveSuperPassword, uuids);
+      setSensitiveData(result.data);
+      setSensitiveRevealed(true);
+      message.success('已显示敏感信息');
+      setSensitiveModalVisible(false);
+    } catch (err: any) {
+      message.error(err?.message || '获取敏感信息失败');
+    }
+  };
+
+  const handleHideSensitive = () => {
+    setSensitiveData({});
+    setSensitiveRevealed(false);
+  };
+
+  // 重置密码
+  const handleResetPwd = (user: API.AdminUser) => {
+    setResetPwdUser(user);
+    setResetPwdSuperPassword('');
+    setResetPwdNewPassword('');
+    setResetPwdConfirmPassword('');
+    setResetPwdModalVisible(true);
+  };
+
+  const handleResetPwdConfirm = async () => {
+    if (!resetPwdUser) return;
+    if (!resetPwdSuperPassword) {
+      message.warning('请输入超级密码');
+      return;
+    }
+    if (!resetPwdNewPassword || resetPwdNewPassword.length !== 64) {
+      message.warning('新密码必须为 64 位 SHA256 哈希值');
+      return;
+    }
+    if (resetPwdNewPassword !== resetPwdConfirmPassword) {
+      message.warning('两次输入的新密码不一致');
+      return;
+    }
+    try {
+      await resetPassword(
+        resetPwdUser.uuid,
+        resetPwdSuperPassword,
+        resetPwdNewPassword,
+      );
+      message.success('密码重置成功，该用户需重新登录');
+      setResetPwdModalVisible(false);
+      setResetPwdUser(null);
+      actionRef.current?.reload();
+    } catch (err: any) {
+      message.error(err?.message || '重置密码失败');
+    }
+  };
+
   const columns: ProColumns<API.AdminUser>[] = [
     {
       title: 'ID',
@@ -294,7 +383,12 @@ const UserManage: React.FC = () => {
       title: '真实姓名',
       dataIndex: 'real_name',
       width: 100,
-      render: (_, record) => record.real_name || '-',
+      render: (_, record) => {
+        if (sensitiveRevealed && sensitiveData[record.uuid]) {
+          return sensitiveData[record.uuid].real_name || '-';
+        }
+        return '****';
+      },
     },
     {
       title: '昵称',
@@ -313,7 +407,12 @@ const UserManage: React.FC = () => {
       dataIndex: 'class',
       width: 100,
       search: false,
-      render: (_, record) => record.class || '-',
+      render: (_, record) => {
+        if (sensitiveRevealed && sensitiveData[record.uuid]) {
+          return sensitiveData[record.uuid].class || '-';
+        }
+        return '****';
+      },
     },
     {
       title: '角色',
@@ -401,6 +500,14 @@ const UserManage: React.FC = () => {
         >
           删除
         </a>,
+        <a
+          key="reset-pwd"
+          onClick={() => {
+            handleResetPwd(record);
+          }}
+        >
+          重置密码
+        </a>,
       ],
     },
   ];
@@ -487,6 +594,15 @@ const UserManage: React.FC = () => {
           >
             新建用户
           </Button>,
+          sensitiveRevealed ? (
+            <Button key="hide-sensitive" onClick={handleHideSensitive}>
+              隐藏敏感信息
+            </Button>
+          ) : (
+            <Button key="show-sensitive" onClick={handleShowSensitive}>
+              查看敏感信息
+            </Button>
+          ),
         ]}
         search={{
           labelWidth: 'auto',
@@ -551,13 +667,21 @@ const UserManage: React.FC = () => {
               {selectedUser.email || '-'}
             </Descriptions.Item>
             <Descriptions.Item label="真实姓名">
-              {selectedUser.real_name || '-'}
+              {sensitiveRevealed &&
+              selectedUser &&
+              sensitiveData[selectedUser.uuid]
+                ? sensitiveData[selectedUser.uuid].real_name || '-'
+                : '****'}
             </Descriptions.Item>
             <Descriptions.Item label="昵称">
               {selectedUser.nickname || '-'}
             </Descriptions.Item>
             <Descriptions.Item label="班级">
-              {selectedUser.class || '-'}
+              {sensitiveRevealed &&
+              selectedUser &&
+              sensitiveData[selectedUser.uuid]
+                ? sensitiveData[selectedUser.uuid].class || '-'
+                : '****'}
             </Descriptions.Item>
             <Descriptions.Item label="学段">
               {selectedUser.class_type === 'high-school'
@@ -873,6 +997,79 @@ const UserManage: React.FC = () => {
           placeholder="请输入超级密码"
           value={superPassword}
           onChange={(e) => setSuperPassword(e.target.value)}
+          autoFocus
+        />
+      </Modal>
+
+      {/* 重置密码弹窗 */}
+      <Modal
+        title={`重置密码 - ${
+          resetPwdUser?.username || resetPwdUser?.real_name || ''
+        }`}
+        open={resetPwdModalVisible}
+        onCancel={() => {
+          setResetPwdModalVisible(false);
+          setResetPwdUser(null);
+        }}
+        onOk={handleResetPwdConfirm}
+        okText="确认重置"
+        cancelText="取消"
+        width={420}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Alert
+            message="重置后该用户的所有登录会话将失效，需要重新登录。"
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>超级密码</div>
+            <Input.Password
+              placeholder="请输入超级密码"
+              value={resetPwdSuperPassword}
+              onChange={(e) => setResetPwdSuperPassword(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>
+              新密码（SHA256 hex）
+            </div>
+            <Input.Password
+              placeholder="64位 SHA256 哈希值"
+              value={resetPwdNewPassword}
+              onChange={(e) => setResetPwdNewPassword(e.target.value)}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>确认新密码</div>
+            <Input.Password
+              placeholder="再次输入新密码"
+              value={resetPwdConfirmPassword}
+              onChange={(e) => setResetPwdConfirmPassword(e.target.value)}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* 查看敏感信息 — 超级密码弹窗 */}
+      <Modal
+        title="查看敏感信息"
+        open={sensitiveModalVisible}
+        onCancel={() => setSensitiveModalVisible(false)}
+        onOk={handleSensitiveConfirm}
+        okText="确认查看"
+        cancelText="取消"
+        width={400}
+      >
+        <p style={{ marginBottom: 16 }}>
+          请输入超级密码以查看所选用户的真实姓名和班级信息。
+        </p>
+        <Input.Password
+          placeholder="请输入超级密码"
+          value={sensitiveSuperPassword}
+          onChange={(e) => setSensitiveSuperPassword(e.target.value)}
           autoFocus
         />
       </Modal>
