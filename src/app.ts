@@ -2,7 +2,9 @@
 import ApiUrlModal from '@/components/ApiUrlModal';
 import { clearToken, getMe, getToken } from '@/services/tinder';
 import { getApiUrl } from '@/utils/apiUrl';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { history } from '@umijs/max';
+import { Dropdown } from 'antd';
 import React from 'react';
 
 /** 登录页路径 */
@@ -42,6 +44,14 @@ export const layout = ({
 }: {
   initialState: API.CurrentUser | null;
 }) => {
+  /**
+   * 退出登录：清除 token 并跳转到登录页
+   */
+  const handleLogout = () => {
+    clearToken();
+    history.push(LOGIN_PATH);
+  };
+
   return {
     logo: 'https://img.alicdn.com/tfs/TB1YHEpwUT1gK0jSZFhXXaAtVXa-28-27.svg',
     menu: { locale: false },
@@ -54,9 +64,7 @@ export const layout = ({
 
       // 未登录：跳转到登录页，并记录原始路径以便登录后跳回
       if (!initialState) {
-        history.push(
-          `${LOGIN_PATH}?redirect=${encodeURIComponent(pathname)}`,
-        );
+        history.push(`${LOGIN_PATH}?redirect=${encodeURIComponent(pathname)}`);
         return;
       }
 
@@ -64,6 +72,42 @@ export const layout = ({
       if (!ADMIN_ROLES.includes(initialState.user_role)) {
         history.push(FORBIDDEN_PATH);
       }
+    },
+
+    /**
+     * 右上角区域：显示当前用户名 + 退出登录下拉菜单
+     */
+    rightContentRender: () => {
+      if (!initialState) return null;
+
+      const menuItems = [
+        {
+          key: 'logout',
+          icon: React.createElement(LogoutOutlined),
+          label: '退出登录',
+          onClick: handleLogout,
+        },
+      ];
+
+      return React.createElement(
+        Dropdown,
+        { menu: { items: menuItems }, placement: 'bottomRight' },
+        React.createElement(
+          'div',
+          {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '0 16px',
+              cursor: 'pointer',
+              height: 48,
+            },
+          },
+          React.createElement(UserOutlined),
+          React.createElement('span', null, initialState.username),
+        ),
+      );
     },
 
     // 通过 React.createElement 避免在 .ts 文件中使用 JSX 语法，
