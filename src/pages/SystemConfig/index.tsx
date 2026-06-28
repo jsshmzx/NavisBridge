@@ -48,8 +48,12 @@ function formatValue(
   return String(value);
 }
 
+const SESSION_KEY = 'systemConfigVerified';
+
 const SystemConfig: React.FC = () => {
-  const [passwordModalOpen, setPasswordModalOpen] = useState(true);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(
+    () => sessionStorage.getItem(SESSION_KEY) !== 'true',
+  );
   const [superPassword, setSuperPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [configData, setConfigData] = useState<API.SystemConfig | null>(null);
@@ -65,6 +69,7 @@ const SystemConfig: React.FC = () => {
     try {
       const data = await getSystemConfig(superPassword.trim());
       setConfigData(data);
+      sessionStorage.setItem(SESSION_KEY, 'true');
       setPasswordModalOpen(false);
     } catch (err: any) {
       setError(err.message || '验证失败');
@@ -82,6 +87,7 @@ const SystemConfig: React.FC = () => {
   }, [configData]);
 
   const handleReEnterPassword = useCallback(() => {
+    sessionStorage.removeItem(SESSION_KEY);
     setSuperPassword('');
     setPasswordModalOpen(true);
   }, []);
