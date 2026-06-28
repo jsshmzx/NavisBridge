@@ -43,12 +43,53 @@ const renderJson = (value: Record<string, unknown> | null) => {
   );
 };
 
-/** 将单元格值安全渲染为文本；对象会序列化为 JSON，避免显示 [object Object]。 */
-const safeRenderText = (value: unknown, fallback = '-'): string => {
+/** 将单元格值安全渲染为文本。
+ * ProTable 在 valueType='text' 默认渲染时，render 第一个参数实际是一个
+ * <Typography.Text copyable ellipsis> 元素（来自 pro-utils 的 genCopyable），
+ * record 中的对应字段也可能被替换成 React 元素。直接 JSON.stringify 会输出
+ * `{"type":{},...}`。这里递归从 React 元素的 props（copyable.text、
+ * ellipsis.tooltip、children）中提取真实文本，避免 [object Object] / JSON 化
+ * 的 React 元素。 */
+const extractReactText = (value: unknown, fallback: string): string => {
   if (value === null || value === undefined || value === '') return fallback;
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean')
     return String(value);
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((v) => extractReactText(v, ''))
+      .filter((s) => s && s !== fallback);
+    return parts.length ? parts.join('') : fallback;
+  }
+  if (React.isValidElement(value)) {
+    const props = (value.props ?? {}) as {
+      copyable?: { text?: unknown } | boolean;
+      ellipsis?: { tooltip?: unknown };
+      children?: unknown;
+      title?: unknown;
+    };
+    // genCopyable 会把原始文本放在 copyable.text / ellipsis.tooltip 上
+    if (
+      props.copyable &&
+      typeof props.copyable === 'object' &&
+      props.copyable.text !== undefined
+    ) {
+      return extractReactText(props.copyable.text, fallback);
+    }
+    if (props.ellipsis && typeof props.ellipsis === 'object') {
+      const tip = props.ellipsis.tooltip;
+      if (tip !== undefined && tip !== null && tip !== false) {
+        return extractReactText(tip, fallback);
+      }
+    }
+    if (props.title !== undefined) {
+      return extractReactText(props.title, fallback);
+    }
+    if (props.children !== undefined) {
+      return extractReactText(props.children, fallback);
+    }
+    return fallback;
+  }
   if (typeof value === 'object') {
     try {
       return JSON.stringify(value);
@@ -57,6 +98,21 @@ const safeRenderText = (value: unknown, fallback = '-'): string => {
     }
   }
   return String(value);
+};
+
+/** 取单元格对应的原始字符串。优先用 record[dataIndex]（绝大多数情况是字符串），
+ * 退化到第一个参数（默认渲染的 DOM）。 */
+const pickCellText = (
+  value: unknown,
+  record: Record<string, unknown> | undefined,
+  field: string,
+  fallback = '-',
+): string => {
+  if (record && record[field] !== undefined && record[field] !== null) {
+    const fromRecord = extractReactText(record[field], '');
+    if (fromRecord && fromRecord !== fallback) return fromRecord;
+  }
+  return extractReactText(value, fallback);
 };
 
 const baseColumns: ProColumns<API.BaseLog>[] = [
@@ -102,8 +158,8 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '内容',
     dataIndex: 'content',
     ellipsis: true,
-    render: (_, record) => {
-      const text = safeRenderText(record.content);
+    render: (value, record) => {
+      const text = pickCellText(value, record as any, 'content');
       return text !== '-' ? (
         <Text style={{ maxWidth: 360 }} ellipsis={{ tooltip: true }}>
           {text}
@@ -137,8 +193,8 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     dataIndex: 'trace_id',
     width: 160,
     ellipsis: true,
-    render: (_, record) => {
-      const text = safeRenderText(record.trace_id);
+    render: (value, record) => {
+      const text = pickCellText(value, record as any, 'trace_id');
       return text !== '-' ? (
         <Text copyable style={{ maxWidth: 140 }} ellipsis>
           {text}
@@ -167,8 +223,8 @@ const personalLogColumns: ProColumns<API.PersonalLog>[] = [
     dataIndex: 'user_uuid',
     width: 160,
     ellipsis: true,
-    render: (_, record) => {
-      const text = safeRenderText(record.user_uuid);
+    render: (value, record) => {
+      const text = pickCellText(value, record as any, 'user_uuid');
       return text !== '-' ? (
         <Text copyable style={{ maxWidth: 140 }} ellipsis>
           {text}
@@ -182,15 +238,17 @@ const personalLogColumns: ProColumns<API.PersonalLog>[] = [
     title: '操作对象',
     dataIndex: 'target_type',
     width: 160,
-    render: (_, record) =>
-      record.target_type ? (
+    render: (_, record) => {
+      const type = extractReactText(record.target_type, '');
+      const id = extractReactText(record.target_id, '');
+      if (!type) return '-';
+      return (
         <span>
-          {record.target_type}
-          {record.target_id ? `: ${record.target_id}` : ''}
+          {type}
+          {id ? `: ${id}` : ''}
         </span>
-      ) : (
-        '-'
-      ),
+      );
+    },
   },
 ];
 
