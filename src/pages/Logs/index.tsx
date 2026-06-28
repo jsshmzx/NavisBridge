@@ -70,15 +70,17 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '事件类型',
     dataIndex: 'event_type',
     width: 140,
-    render: (value) => value || '-',
+    render: (_, record) => record.event_type || '-',
   },
   {
     title: '状态',
     dataIndex: 'status',
     width: 90,
-    render: (value) =>
-      value ? (
-        <Tag color={STATUS_COLORS[String(value)] ?? 'default'}>{value}</Tag>
+    render: (_, record) =>
+      record.status ? (
+        <Tag color={STATUS_COLORS[record.status] ?? 'default'}>
+          {record.status}
+        </Tag>
       ) : (
         '-'
       ),
@@ -87,9 +89,11 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '严重级别',
     dataIndex: 'severity',
     width: 90,
-    render: (value) =>
-      value ? (
-        <Tag color={SEVERITY_COLORS[String(value)] ?? 'default'}>{value}</Tag>
+    render: (_, record) =>
+      record.severity ? (
+        <Tag color={SEVERITY_COLORS[record.severity] ?? 'default'}>
+          {record.severity}
+        </Tag>
       ) : (
         '-'
       ),
@@ -98,17 +102,22 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '内容',
     dataIndex: 'content',
     ellipsis: true,
-    render: (value) => (
-      <Text style={{ maxWidth: 360 }} ellipsis={{ tooltip: true }}>
-        {safeRenderText(value)}
-      </Text>
-    ),
+    render: (_, record) => {
+      const text = safeRenderText(record.content);
+      return text !== '-' ? (
+        <Text style={{ maxWidth: 360 }} ellipsis={{ tooltip: true }}>
+          {text}
+        </Text>
+      ) : (
+        '-'
+      );
+    },
   },
   {
     title: 'IP',
     dataIndex: 'client_ip',
     width: 120,
-    render: (value) => value || '-',
+    render: (_, record) => record.client_ip || '-',
   },
   {
     title: '请求',
@@ -128,8 +137,8 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     dataIndex: 'trace_id',
     width: 160,
     ellipsis: true,
-    render: (value) => {
-      const text = safeRenderText(value);
+    render: (_, record) => {
+      const text = safeRenderText(record.trace_id);
       return text !== '-' ? (
         <Text copyable style={{ maxWidth: 140 }} ellipsis>
           {text}
@@ -147,7 +156,7 @@ const systemLogColumns: ProColumns<API.SystemLog>[] = [
     title: '服务名',
     dataIndex: 'service_name',
     width: 120,
-    render: (value) => value || '-',
+    render: (_, record) => record.service_name || '-',
   },
 ];
 
@@ -158,8 +167,8 @@ const personalLogColumns: ProColumns<API.PersonalLog>[] = [
     dataIndex: 'user_uuid',
     width: 160,
     ellipsis: true,
-    render: (value) => {
-      const text = safeRenderText(value);
+    render: (_, record) => {
+      const text = safeRenderText(record.user_uuid);
       return text !== '-' ? (
         <Text copyable style={{ maxWidth: 140 }} ellipsis>
           {text}
