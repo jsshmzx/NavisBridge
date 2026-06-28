@@ -6,5 +6,7 @@ export default (initialState: API.CurrentUser | null | undefined) => {
   const canAdmin = !!(
     initialState?.user_role && ADMIN_ROLES.includes(initialState.user_role)
   );
-  return { canAdmin };
+  // canViewSystemLogs: 仅 superadmin 可查看系统日志
+  const canViewSystemLogs = initialState?.user_role === 'superadmin';
+  return { canAdmin, canViewSystemLogs };
 };

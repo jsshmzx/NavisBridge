@@ -3,7 +3,6 @@ import { PageContainer } from '@ant-design/pro-components';
 import {
   Alert,
   Button,
-  Card,
   Collapse,
   Descriptions,
   Input,
@@ -148,10 +147,7 @@ const SystemConfig: React.FC = () => {
               label: (
                 <span>
                   <strong>{group.group}</strong>
-                  <Tag
-                    color="blue"
-                    style={{ marginLeft: 8 }}
-                  >
+                  <Tag color="blue" style={{ marginLeft: 8 }}>
                     {group.items.length} 项
                   </Tag>
                 </span>

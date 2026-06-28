@@ -41,6 +41,11 @@ export default defineConfig({
       path: '/system-config',
       component: './SystemConfig',
     },
+    {
+      name: '日志查询',
+      path: '/logs',
+      component: './Logs',
+    },
   ],
   npmClient: 'pnpm',
 });

@@ -118,4 +118,70 @@ declare namespace API {
   interface SystemConfig {
     groups: ConfigGroup[];
   }
+
+  /** 日志类型：系统日志 / 个人日志 */
+  type LogKind = 'system' | 'personal';
+
+  /** 日志严重程度 */
+  type LogSeverity = 'INFO' | 'WARN' | 'ERROR';
+
+  /** 日志结果状态 */
+  type LogStatus = 'SUCCESS' | 'FAIL' | 'PARTIAL';
+
+  /** 日志基础字段 */
+  interface BaseLog {
+    uuid: string;
+    log_level: string;
+    log_type: string | null;
+    event_type: string | null;
+    status: LogStatus | null;
+    severity: LogSeverity | null;
+    content: string | null;
+    client_ip: string | null;
+    request_method: string | null;
+    request_url: string | null;
+    user_agent: string | null;
+    trace_id: string | null;
+    extra_data: Record<string, unknown> | null;
+    created_at: string | null;
+  }
+
+  /** 系统日志 */
+  interface SystemLog extends BaseLog {
+    service_name: string | null;
+  }
+
+  /** 个人日志 */
+  interface PersonalLog extends BaseLog {
+    user_uuid: string | null;
+    target_type: string | null;
+    target_id: string | null;
+    target_name: string | null;
+    before_data: Record<string, unknown> | null;
+    after_data: Record<string, unknown> | null;
+  }
+
+  /** 日志分页查询响应 */
+  interface PaginatedLogs<T = BaseLog> {
+    total: number;
+    items: T[];
+  }
+
+  /** 日志查询参数 */
+  interface LogSearchParams {
+    event_type?: string;
+    log_type?: string;
+    status?: string;
+    severity?: string;
+    trace_id?: string;
+    client_ip?: string;
+    keyword?: string;
+    start_time?: string;
+    end_time?: string;
+    user_uuid?: string;
+    target_type?: string;
+    target_id?: string;
+    limit?: number;
+    offset?: number;
+  }
 }
