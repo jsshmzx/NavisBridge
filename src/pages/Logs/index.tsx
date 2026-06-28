@@ -124,7 +124,7 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
 ];
 
 const systemLogColumns: ProColumns<API.SystemLog>[] = [
-  ...baseColumns,
+  ...(baseColumns as ProColumns<API.SystemLog>[]),
   {
     title: '服务名',
     dataIndex: 'service_name',
@@ -134,7 +134,7 @@ const systemLogColumns: ProColumns<API.SystemLog>[] = [
 ];
 
 const personalLogColumns: ProColumns<API.PersonalLog>[] = [
-  ...baseColumns,
+  ...(baseColumns as ProColumns<API.PersonalLog>[]),
   {
     title: '用户 UUID',
     dataIndex: 'user_uuid',
