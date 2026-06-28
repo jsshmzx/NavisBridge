@@ -100,4 +100,22 @@ declare namespace API {
   interface SensitiveDataMap {
     data: Record<string, { real_name: string | null; class: string | null }>;
   }
+
+  /** 系统配置项 */
+  interface ConfigItem {
+    key: string;
+    value: string | number | boolean | null;
+    description: string;
+  }
+
+  /** 系统配置分组 */
+  interface ConfigGroup {
+    group: string;
+    items: ConfigItem[];
+  }
+
+  /** 系统配置查询响应 */
+  interface SystemConfig {
+    groups: ConfigGroup[];
+  }
 }

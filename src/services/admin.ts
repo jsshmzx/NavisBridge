@@ -396,3 +396,21 @@ export async function updateQuestionStatus(
   }
   return res.json();
 }
+
+// ─── 系统配置 ──────────────────────────────────────────────────────────
+
+/** 查看系统配置（需要超级密码） */
+export async function getSystemConfig(
+  superPassword: string,
+): Promise<API.SystemConfig> {
+  const res = await fetch(`${getApiUrl()}/api/v1/admin/config`, {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ super_password: superPassword }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || '获取系统配置失败');
+  }
+  return res.json();
+}

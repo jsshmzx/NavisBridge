@@ -36,6 +36,11 @@ export default defineConfig({
       path: '/register-questions',
       component: './RegisterQuestions',
     },
+    {
+      name: '系统配置',
+      path: '/system-config',
+      component: './SystemConfig',
+    },
   ],
   npmClient: 'pnpm',
 });
