@@ -14,6 +14,7 @@ import {
   unbanUser,
   updateUser,
 } from '@/services/admin';
+import { DownOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
   ActionType,
   FooterToolbar,
@@ -29,6 +30,7 @@ import {
   Col,
   Descriptions,
   Drawer,
+  Dropdown,
   Form,
   Input,
   message,
@@ -38,8 +40,33 @@ import {
   Space,
   Statistic,
   Tag,
+  Typography,
 } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
+
+/** 生成指定长度的随机密码（字母+数字） */
+function generateRandomPassword(length = 12): string {
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const array = new Uint32Array(length);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, (n) => chars[n % chars.length]).join('');
+}
+
+/** 计算字符串的 SHA-256 hex */
+async function sha256Hex(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** 客户端双重 SHA-256，与登录逻辑保持一致 */
+async function doubleSha256Hex(input: string): Promise<string> {
+  const first = await sha256Hex(input);
+  return sha256Hex(first);
+}
 
 /** 状态标签颜色 */
 const STATUS_COLORS: Record<string, string> = {
@@ -91,8 +118,9 @@ const UserManage: React.FC = () => {
   const [resetPwdModalVisible, setResetPwdModalVisible] = useState(false);
   const [resetPwdUser, setResetPwdUser] = useState<API.AdminUser | null>(null);
   const [resetPwdSuperPassword, setResetPwdSuperPassword] = useState('');
-  const [resetPwdNewPassword, setResetPwdNewPassword] = useState('');
-  const [resetPwdConfirmPassword, setResetPwdConfirmPassword] = useState('');
+  const [resetPwdPlain, setResetPwdPlain] = useState('');
+  const [resetPwdHash, setResetPwdHash] = useState('');
+  const [resetPwdLoading, setResetPwdLoading] = useState(false);
 
   // 加载统计
   useEffect(() => {
@@ -271,32 +299,64 @@ const UserManage: React.FC = () => {
   };
 
   // 状态变更操作
-  const handleStatusAction = async (
+  const handleStatusAction = (
     user: API.AdminUser,
     action: 'ban' | 'unban' | 'disable' | 'enable',
   ) => {
-    try {
-      const actionMap = {
-        ban: { fn: banUser, msg: '封禁成功' },
-        unban: { fn: unbanUser, msg: '已解封' },
-        disable: { fn: disableUser, msg: '已禁用' },
-        enable: { fn: enableUser, msg: '已启用' },
-      };
-      const { fn, msg } = actionMap[action];
-      await fn(user.uuid);
-      message.success(msg);
-      actionRef.current?.reload();
-      getUserStats()
-        .then(setStats)
-        .catch(() => {});
-      setDrawerOpen(false);
-    } catch (err: any) {
-      message.error(err?.message || '操作失败');
-    }
+    const actionMap = {
+      ban: {
+        title: '封禁用户',
+        content: '封禁后该用户将无法登录，确定继续吗？',
+        fn: banUser,
+        msg: '封禁成功',
+      },
+      unban: {
+        title: '解封用户',
+        content: '解封后该用户将恢复正常登录权限，确定继续吗？',
+        fn: unbanUser,
+        msg: '已解封',
+      },
+      disable: {
+        title: '禁用用户',
+        content: '禁用后该用户将无法登录，确定继续吗？',
+        fn: disableUser,
+        msg: '已禁用',
+      },
+      enable: {
+        title: '启用用户',
+        content: '启用后该用户将恢复正常登录权限，确定继续吗？',
+        fn: enableUser,
+        msg: '已启用',
+      },
+    };
+    const { title, content, fn, msg } = actionMap[action];
+    Modal.confirm({
+      title,
+      content,
+      okText: '确定',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await fn(user.uuid);
+          message.success(msg);
+          actionRef.current?.reload();
+          getUserStats()
+            .then(setStats)
+            .catch(() => {});
+          setDrawerOpen(false);
+        } catch (err: any) {
+          message.error(err?.message || '操作失败');
+        }
+      },
+    });
   };
 
   // 查看敏感信息
   const handleShowSensitive = () => {
+    if (selectedRows.length === 0) {
+      message.warning('请先在表格中选择要查看的用户');
+      return;
+    }
     setSensitiveSuperPassword('');
     setSensitiveModalVisible(true);
   };
@@ -329,11 +389,18 @@ const UserManage: React.FC = () => {
   };
 
   // 重置密码
-  const handleResetPwd = (user: API.AdminUser) => {
+  const regenerateResetPassword = async () => {
+    const plain = generateRandomPassword(12);
+    const hash = await doubleSha256Hex(plain);
+    setResetPwdPlain(plain);
+    setResetPwdHash(hash);
+  };
+
+  const handleResetPwd = async (user: API.AdminUser) => {
     setResetPwdUser(user);
     setResetPwdSuperPassword('');
-    setResetPwdNewPassword('');
-    setResetPwdConfirmPassword('');
+    setResetPwdLoading(false);
+    await regenerateResetPassword();
     setResetPwdModalVisible(true);
   };
 
@@ -343,19 +410,16 @@ const UserManage: React.FC = () => {
       message.warning('请输入超级密码');
       return;
     }
-    if (!resetPwdNewPassword || resetPwdNewPassword.length !== 64) {
-      message.warning('新密码必须为 64 位 SHA256 哈希值');
+    if (!resetPwdHash || resetPwdHash.length !== 64) {
+      message.warning('密码生成失败，请重新生成');
       return;
     }
-    if (resetPwdNewPassword !== resetPwdConfirmPassword) {
-      message.warning('两次输入的新密码不一致');
-      return;
-    }
+    setResetPwdLoading(true);
     try {
       await resetPassword(
         resetPwdUser.uuid,
         resetPwdSuperPassword,
-        resetPwdNewPassword,
+        resetPwdHash,
       );
       message.success('密码重置成功，该用户需重新登录');
       setResetPwdModalVisible(false);
@@ -363,6 +427,8 @@ const UserManage: React.FC = () => {
       actionRef.current?.reload();
     } catch (err: any) {
       message.error(err?.message || '重置密码失败');
+    } finally {
+      setResetPwdLoading(false);
     }
   };
 
@@ -471,44 +537,37 @@ const UserManage: React.FC = () => {
     },
     {
       title: '操作',
-      width: 180,
+      width: 100,
       key: 'option',
       valueType: 'option',
-      render: (_, record) => [
-        <a
-          key="detail"
-          onClick={() => {
-            showDetail(record);
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'detail',
+                label: '详情',
+                onClick: () => showDetail(record),
+              },
+              { key: 'edit', label: '编辑', onClick: () => showEdit(record) },
+              {
+                key: 'reset-pwd',
+                label: '重置密码',
+                onClick: () => handleResetPwd(record),
+              },
+              {
+                key: 'delete',
+                label: <span style={{ color: '#ff4d4f' }}>删除</span>,
+                onClick: () => handleDelete(record),
+              },
+            ],
           }}
         >
-          详情
-        </a>,
-        <a
-          key="edit"
-          onClick={() => {
-            showEdit(record);
-          }}
-        >
-          编辑
-        </a>,
-        <a
-          key="delete"
-          style={{ color: 'red' }}
-          onClick={() => {
-            handleDelete(record);
-          }}
-        >
-          删除
-        </a>,
-        <a
-          key="reset-pwd"
-          onClick={() => {
-            handleResetPwd(record);
-          }}
-        >
-          重置密码
-        </a>,
-      ],
+          <a onClick={(e) => e.preventDefault()}>
+            操作 <DownOutlined />
+          </a>
+        </Dropdown>
+      ),
     },
   ];
 
@@ -1010,15 +1069,18 @@ const UserManage: React.FC = () => {
         onCancel={() => {
           setResetPwdModalVisible(false);
           setResetPwdUser(null);
+          setResetPwdPlain('');
+          setResetPwdHash('');
         }}
         onOk={handleResetPwdConfirm}
         okText="确认重置"
         cancelText="取消"
-        width={420}
+        confirmLoading={resetPwdLoading}
+        width={480}
       >
         <div style={{ marginBottom: 16 }}>
           <Alert
-            message="重置后该用户的所有登录会话将失效，需要重新登录。"
+            message="重置后该用户的所有登录会话将失效，需使用下方新密码重新登录。"
             type="warning"
             showIcon
             style={{ marginBottom: 16 }}
@@ -1034,21 +1096,31 @@ const UserManage: React.FC = () => {
           </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ marginBottom: 8, fontWeight: 500 }}>
-              新密码（SHA256 hex）
+              新密码（已自动生成，请复制后告知用户）
             </div>
-            <Input.Password
-              placeholder="64位 SHA256 哈希值"
-              value={resetPwdNewPassword}
-              onChange={(e) => setResetPwdNewPassword(e.target.value)}
-            />
-          </div>
-          <div>
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>确认新密码</div>
-            <Input.Password
-              placeholder="再次输入新密码"
-              value={resetPwdConfirmPassword}
-              onChange={(e) => setResetPwdConfirmPassword(e.target.value)}
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <Input.Password
+                value={resetPwdPlain}
+                readOnly
+                visibilityToggle={false}
+                style={{ flex: 1 }}
+              />
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={regenerateResetPassword}
+                title="重新生成"
+              />
+            </Space.Compact>
+            {resetPwdPlain && (
+              <div style={{ marginTop: 8 }}>
+                <Typography.Text
+                  copyable={{ text: resetPwdPlain }}
+                  style={{ color: '#1890ff' }}
+                >
+                  点击复制新密码
+                </Typography.Text>
+              </div>
+            )}
           </div>
         </div>
       </Modal>
