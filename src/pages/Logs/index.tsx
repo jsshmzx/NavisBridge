@@ -43,6 +43,22 @@ const renderJson = (value: Record<string, unknown> | null) => {
   );
 };
 
+/** 将单元格值安全渲染为文本；对象会序列化为 JSON，避免显示 [object Object]。 */
+const safeRenderText = (value: unknown, fallback = '-'): string => {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value);
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(value);
+};
+
 const baseColumns: ProColumns<API.BaseLog>[] = [
   {
     title: '时间',
@@ -84,7 +100,7 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     ellipsis: true,
     render: (value) => (
       <Text style={{ maxWidth: 360 }} ellipsis={{ tooltip: true }}>
-        {String(value || '-')}
+        {safeRenderText(value)}
       </Text>
     ),
   },
@@ -112,14 +128,16 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     dataIndex: 'trace_id',
     width: 160,
     ellipsis: true,
-    render: (value) =>
-      value ? (
+    render: (value) => {
+      const text = safeRenderText(value);
+      return text !== '-' ? (
         <Text copyable style={{ maxWidth: 140 }} ellipsis>
-          {String(value)}
+          {text}
         </Text>
       ) : (
         '-'
-      ),
+      );
+    },
   },
 ];
 
@@ -140,14 +158,16 @@ const personalLogColumns: ProColumns<API.PersonalLog>[] = [
     dataIndex: 'user_uuid',
     width: 160,
     ellipsis: true,
-    render: (value) =>
-      value ? (
+    render: (value) => {
+      const text = safeRenderText(value);
+      return text !== '-' ? (
         <Text copyable style={{ maxWidth: 140 }} ellipsis>
-          {String(value)}
+          {text}
         </Text>
       ) : (
         '-'
-      ),
+      );
+    },
   },
   {
     title: '操作对象',
