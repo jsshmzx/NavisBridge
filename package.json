@@ -23,7 +23,7 @@
     "@types/react-dom": "^18.3.7",
     "husky": "^9.1.7",
     "lint-staged": "^13.3.0",
-    "prettier": "^2.8.8",
+    "prettier": "^3.9.4",
     "prettier-plugin-organize-imports": "^3.2.4",
     "prettier-plugin-packagejson": "^2.5.22",
     "typescript": "^5.9.3"
