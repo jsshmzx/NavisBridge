@@ -120,18 +120,21 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '时间',
     dataIndex: 'created_at',
     width: 170,
+    resizable: true,
     render: (_, record) => formatDate(record.created_at),
   },
   {
     title: '事件类型',
     dataIndex: 'event_type',
     width: 140,
+    resizable: true,
     render: (_, record) => record.event_type || '-',
   },
   {
     title: '状态',
     dataIndex: 'status',
     width: 90,
+    resizable: true,
     render: (_, record) =>
       record.status ? (
         <Tag color={STATUS_COLORS[record.status] ?? 'default'}>
@@ -145,6 +148,7 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '严重级别',
     dataIndex: 'severity',
     width: 90,
+    resizable: true,
     render: (_, record) =>
       record.severity ? (
         <Tag color={SEVERITY_COLORS[record.severity] ?? 'default'}>
@@ -158,6 +162,7 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: '内容',
     dataIndex: 'content',
     ellipsis: true,
+    resizable: true,
     render: (value, record) => {
       const text = pickCellText(value, record as any, 'content');
       return text !== '-' ? (
@@ -173,12 +178,14 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     title: 'IP',
     dataIndex: 'client_ip',
     width: 120,
+    resizable: true,
     render: (_, record) => record.client_ip || '-',
   },
   {
     title: '请求',
     dataIndex: 'request_method',
     width: 120,
+    resizable: true,
     render: (_, record) =>
       record.request_method ? (
         <span>
@@ -193,6 +200,7 @@ const baseColumns: ProColumns<API.BaseLog>[] = [
     dataIndex: 'trace_id',
     width: 160,
     ellipsis: true,
+    resizable: true,
     render: (value, record) => {
       const text = pickCellText(value, record as any, 'trace_id');
       return text !== '-' ? (
@@ -212,6 +220,7 @@ const systemLogColumns: ProColumns<API.SystemLog>[] = [
     title: '服务名',
     dataIndex: 'service_name',
     width: 120,
+    resizable: true,
     render: (_, record) => record.service_name || '-',
   },
 ];
@@ -223,6 +232,7 @@ const personalLogColumns: ProColumns<API.PersonalLog>[] = [
     dataIndex: 'user_uuid',
     width: 160,
     ellipsis: true,
+    resizable: true,
     render: (value, record) => {
       const text = pickCellText(value, record as any, 'user_uuid');
       return text !== '-' ? (
@@ -238,6 +248,7 @@ const personalLogColumns: ProColumns<API.PersonalLog>[] = [
     title: '操作对象',
     dataIndex: 'target_type',
     width: 160,
+    resizable: true,
     render: (_, record) => {
       const type = extractReactText(record.target_type, '');
       const id = extractReactText(record.target_id, '');
@@ -396,6 +407,7 @@ function LogTable<T extends API.BaseLog>({
         }}
         search={false}
         toolBarRender={false}
+        scroll={{ x: 1500 }}
       />
     </>
   );

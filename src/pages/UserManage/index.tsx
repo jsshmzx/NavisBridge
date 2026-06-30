@@ -438,17 +438,20 @@ const UserManage: React.FC = () => {
       dataIndex: 'id',
       width: 60,
       search: false,
+      resizable: true,
     },
     {
       title: '用户名',
       dataIndex: 'username',
       width: 120,
+      resizable: true,
       render: (_, record) => record.username || '-',
     },
     {
       title: '真实姓名',
       dataIndex: 'real_name',
       width: 100,
+      resizable: true,
       render: (_, record) => {
         if (sensitiveRevealed && sensitiveData[record.uuid]) {
           return sensitiveData[record.uuid].real_name || '-';
@@ -461,18 +464,21 @@ const UserManage: React.FC = () => {
       dataIndex: 'nickname',
       width: 100,
       search: false,
+      resizable: true,
     },
     {
       title: '邮箱',
       dataIndex: 'email',
       width: 160,
       search: false,
+      resizable: true,
     },
     {
       title: '班级',
       dataIndex: 'class',
       width: 100,
       search: false,
+      resizable: true,
       render: (_, record) => {
         if (sensitiveRevealed && sensitiveData[record.uuid]) {
           return sensitiveData[record.uuid].class || '-';
@@ -490,6 +496,7 @@ const UserManage: React.FC = () => {
         songlist_editor: { text: '歌单编辑', status: 'Processing' },
         'normal-user': { text: '普通用户', status: 'Default' },
       },
+      resizable: true,
       render: (_, record) => (
         <Tag>{ROLE_LABELS[record.user_role] || record.user_role}</Tag>
       ),
@@ -505,6 +512,7 @@ const UserManage: React.FC = () => {
         banned: { text: '已封禁', status: 'Error' },
         pending_deletion: { text: '待删除', status: 'Default' },
       },
+      resizable: true,
       render: (_, record) => (
         <Badge
           status={
@@ -528,18 +536,21 @@ const UserManage: React.FC = () => {
       width: 160,
       valueType: 'dateTime',
       search: false,
+      resizable: true,
     },
     {
       title: '积分',
       dataIndex: 'score',
       width: 60,
       search: false,
+      resizable: true,
     },
     {
       title: '操作',
       width: 100,
       key: 'option',
       valueType: 'option',
+      resizable: true,
       render: (_, record) => (
         <Dropdown
           menu={{
@@ -680,6 +691,7 @@ const UserManage: React.FC = () => {
             setSelectedRows(rows);
           },
         }}
+        scroll={{ x: 1500 }}
       />
 
       {/* 批量操作栏 */}

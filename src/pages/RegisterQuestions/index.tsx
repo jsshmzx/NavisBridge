@@ -100,12 +100,14 @@ const RegisterQuestions: React.FC = () => {
       dataIndex: 'id',
       width: 60,
       search: false,
+      resizable: true,
     },
     {
       title: '题目',
       dataIndex: 'question',
       width: 300,
       ellipsis: true,
+      resizable: true,
     },
     {
       title: '类型',
@@ -117,6 +119,7 @@ const RegisterQuestions: React.FC = () => {
         true_false: { text: '判断题', status: 'Processing' },
         fill_blank: { text: '填空题', status: 'Processing' },
       },
+      resizable: true,
       render: (_, record) => (
         <Tag color={QUESTION_TYPE_COLORS[record.question_type]}>
           {QUESTION_TYPE_LABELS[record.question_type] || record.question_type}
@@ -128,6 +131,7 @@ const RegisterQuestions: React.FC = () => {
       dataIndex: 'question_level',
       width: 80,
       search: false,
+      resizable: true,
       render: (_, record) =>
         record.question_level ? (
           <Tag>
@@ -146,6 +150,7 @@ const RegisterQuestions: React.FC = () => {
         active: { text: '启用', status: 'Success' },
         inactive: { text: '禁用', status: 'Default' },
       },
+      resizable: true,
       render: (_, record) => (
         <Badge
           status={
@@ -167,12 +172,14 @@ const RegisterQuestions: React.FC = () => {
       width: 160,
       valueType: 'dateTime',
       search: false,
+      resizable: true,
     },
     {
       title: '操作',
       width: 160,
       key: 'option',
       valueType: 'option',
+      resizable: true,
       render: (_, record) => [
         <a
           key="detail"
@@ -426,6 +433,7 @@ const RegisterQuestions: React.FC = () => {
             setSelectedRows(rows);
           },
         }}
+        scroll={{ x: 1500 }}
       />
 
       {/* 批量操作栏 */}
